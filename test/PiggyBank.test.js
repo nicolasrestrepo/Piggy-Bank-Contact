@@ -22,5 +22,15 @@ describe('Piggy Bank Contract', () => {
 
            expect(result)
        })
+
+       it('Withdraw', () => {
+           const { deployed } = await setup();
+          
+           await deployed.deposit(1)
+
+           const result = await deployed.getBalance()
+
+           expect(result)
+       })
    })
 })

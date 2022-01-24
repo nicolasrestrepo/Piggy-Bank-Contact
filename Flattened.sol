@@ -7,17 +7,15 @@
 pragma solidity ^0.8.0;
 
 contract PiggyBank {
-    
-    address public owner;
-    uint256 balance;
-
     struct Transaction {
         uint256 value;
-        address owner;
+        address depositorAddress;
         uint256 typeTransaction;
     }
 
-    Transaction[] private transactionsHistory;
+    address public owner;
+    mapping(address => uint256) founds;
+    mapping(address => Transaction[]) public transactionsHistory;
 
     // events
     event DepositEvent(uint amount);
@@ -28,37 +26,32 @@ contract PiggyBank {
         owner = msg.sender;
     }
     
-     modifier onlyOwner() {
-        require(msg.sender == owner, 
-            "Only the owner can make this action"
-        );
-        _;
-    }
-
-    modifier verifyBalance(){
+    modifier verifyBalance(uint256 amount){
         require (
-           msg.value <= balance,
+           founds[msg.sender] <= amount,
            "non-sufficient funds"
         );
         _;
     }
- 
+
+    function withdraw(uint amount) external payable verifyBalance(amount){
+        payable(msg.sender).transfer(amount);
+        founds[msg.sender] -= amount;
+        transactionsHistory[msg.sender].push(Transaction(msg.value, msg.sender, 0));
+        emit WithdrawEvent(msg.value);
+    }
+
     function deposit() public payable {
-        balance += msg.value;
+        transactionsHistory[msg.sender].push(Transaction(msg.value, msg.sender, 1));
+        founds[msg.sender] += msg.value;
+        emit DepositEvent(msg.value);
     }
 
     function getBalance() public view returns (uint256) {
-        return balance;
+       return founds[msg.sender];
     }
 
     function getTransactions() public view returns (Transaction[] memory){
-        return transactionsHistory;
-    }
-
-    function withdraw() external payable onlyOwner verifyBalance(){
-        payable(msg.sender).transfer(msg.value);
-        balance -= msg.value;
-        transactionsHistory.push(Transaction(msg.value, msg.sender, 0));
-        emit WithdrawEvent(msg.value);
+        return transactionsHistory[msg.sender];
     }
 }
